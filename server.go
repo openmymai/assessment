@@ -10,7 +10,6 @@ import (
 	"github.com/labstack/echo/v4/middleware"
 
 	"github.com/lib/pq"
-	_ "github.com/lib/pq"
 )
 
 type Expense struct {
@@ -60,6 +59,23 @@ func getExpenseHandler(c echo.Context) error {
 	}
 }
 
+func updateExpenseHandler(c echo.Context) error {
+	id := c.Param("id")
+	e := Expense{}
+	err := c.Bind(&e)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, Err{Message: err.Error()})
+	}
+
+	row := db.QueryRow("UPDATE expenses SET title = $2, amount = $3, note = $4, tags = $5 WHERE id = $1 RETURNING id", id, e.Title, e.Amount, e.Note, pq.Array(e.Tags))
+	err = row.Scan(&e.ID)
+
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, Err{Message: err.Error()})
+	}
+	return c.JSON(http.StatusCreated, e)
+}
+
 var db *sql.DB
 
 func main() {
@@ -95,6 +111,7 @@ func main() {
 
 	e.POST("/expenses", createExpenseHandler)
 	e.GET("/expenses/:id", getExpenseHandler)
+	e.PUT("/expenses/:id", updateExpenseHandler)
 
 	log.Fatal(e.Start(os.Getenv("PORT")))
 }
