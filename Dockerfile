@@ -8,7 +8,7 @@ RUN go mod download
 
 COPY . .
 
-RUN CGO_ENABLED=0
+RUN CGO_ENABLED=0 go test -tags=unit ./...
 
 RUN go build -o ./out/expenses .
 

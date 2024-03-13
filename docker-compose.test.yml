@@ -1,0 +1,43 @@
+version: '3.8'
+
+networks:
+  integration-test:
+
+services:
+  it_tests:
+    build:
+      context: .
+      dockerfile: ./Dockerfile.test
+    volumes:
+      - $PWD:/go/src/target
+    depends_on:
+      - db
+      - api
+    networks:
+      - integration-test
+  api:
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+    restart: always
+    environment:
+      - DATABASE_URL=postgres://root:root@db/expenses?sslmode=disable
+      - PORT=:2565
+      - AUTH_TOKEN="Basic YXBpZGVzaWduOjQ1Njc4"
+    depends_on:
+      - db
+    networks:
+      - integration-test
+    ports:
+      - '2565:2565'
+  db:
+    image: postgres:12.12
+    environment:
+      POSTGRES_USER: root
+      POSTGRES_PASSWORD: root
+      POSTGRES_DB: expenses
+    restart: on-failure
+    volumes:
+      - ./db:/docker-entrypoint-initdb.d/
+    networks:
+      - integration-test
